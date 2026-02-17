@@ -1,0 +1,33 @@
+{
+  "name": "yuque-mcp",
+  "version": "1.0.2",
+  "description": "This folder is prepared for building a custom MCP server for Yuque.",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc --noEmit",
+    "dev": "tsx src/server.ts",
+    "smoke": "tsx src/smoke.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/server-github": "^2025.4.8",
+    "@types/node": "^25.2.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
