@@ -1,5 +1,5 @@
 {
-  "name": "yuque-mcp",
+  "name": "@wwwwujl/yuque-mcp",
   "version": "1.0.3",
   "mcpName": "io.github.wwwwujl/yuque-mcp",
   "description": "Production-grade Yuque MCP server with safe read/write tools.",

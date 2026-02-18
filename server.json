@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "yuque-mcp",
+      "identifier": "@wwwwujl/yuque-mcp",
       "version": "1.0.3",
       "transport": {
         "type": "stdio"

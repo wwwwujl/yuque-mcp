@@ -10,6 +10,7 @@
    - `mcpName`（必须与 `server.json.name` 一致）
 3. 确保 `server.json` 存在且字段完整
 4. npm 账号可发布 `package.json.name` 对应包名
+   - 当前建议包名：`@wwwwujl/yuque-mcp`
 
 ## 2. GitHub Secrets
 
