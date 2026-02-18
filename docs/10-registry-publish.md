@@ -17,6 +17,8 @@
 在仓库 `Settings -> Secrets and variables -> Actions` 中添加：
 
 - `NPM_TOKEN`：npm 发布令牌（必须）
+  - 必须使用 `Automation token`，或带有 `publish` 且可 `bypass 2FA` 的 granular token
+  - 普通 token 在开启 2FA 的账号下会报 `E403`
 
 说明：
 - 工作流使用 GitHub OIDC 登录 MCP Registry，不需要额外的 `MCP_GITHUB_TOKEN`。
@@ -24,11 +26,11 @@
 ## 3. 发布触发方式
 
 工作流文件：`.github/workflows/publish-mcp.yml`  
-触发条件：推送 `v*` 标签（例如 `v1.0.4`）
+触发条件：推送 `v*` 标签（例如 `v1.0.5`）
 
 ```bash
-git tag v1.0.4
-git push origin v1.0.4
+git tag v1.0.5
+git push origin v1.0.5
 ```
 
 ## 4. 工作流做了什么
