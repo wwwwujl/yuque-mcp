@@ -16,6 +16,9 @@ Auth header:
 - `yuque_create_group` -> `POST groups`
 - `yuque_update_group` -> `PUT groups/{login}`
 - `yuque_delete_group` -> `DELETE groups/{login}`
+- `yuque_list_group_users` -> `GET groups/{login}/users`
+- `yuque_add_group_user` -> `PUT groups/{group}/users/{user}`
+- `yuque_remove_group_user` -> `DELETE groups/{group}/users/{user}`
 - `yuque_list_repos` -> `GET users/{user}/repos` or `GET groups/{group}/repos`
 - `yuque_get_my_repositories` -> `GET user` + `GET users/{current_login}/repos`
 - `yuque_get_repo` -> `GET repos/{namespace}`
@@ -39,6 +42,8 @@ Auth header:
 
 - `yuque_search_docs` and `yuque_search_and_read` are implemented client-side over paginated listed docs.
 - Retry policy remains read-only only (`GET` + transient statuses).
+- Write tools are gated by server policy (`YUQUE_ALLOW_WRITE`) with optional namespace/group allowlists.
 - For delete tools (`group/repo/doc`), confirmation text is validated in service layer before upstream call.
 - `yuque_list_groups` will fallback to `GET users/{current_login}/groups` if `GET groups` returns 404.
 - TOC calls attempt namespace fallback: if repo ID namespace is not accepted, service retries with canonical `login/slug` namespace.
+- File-based doc tools validate root path, extension allowlist, and max file size before reading local files.

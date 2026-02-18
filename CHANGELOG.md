@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.0 - 2026-02-18
+
+- Added write safety gate for all write tools:
+  - `YUQUE_ALLOW_WRITE` (default `false`)
+  - `YUQUE_WRITE_NAMESPACE_ALLOWLIST`
+  - `YUQUE_WRITE_GROUP_ALLOWLIST`
+- Added file safety policy for file-based doc tools:
+  - `YUQUE_FILE_ROOT`
+  - `YUQUE_FILE_MAX_BYTES`
+  - `YUQUE_FILE_ALLOWED_EXTENSIONS`
+- Added group membership tools:
+  - `yuque_list_group_users`
+  - `yuque_add_group_user`
+  - `yuque_remove_group_user`
+- Fixed MCP server runtime version reporting by resolving version from `package.json` instead of hardcoded value.
+- Added config unit tests and expanded service/client/schema test coverage for new policy and API mappings.
+- Added npm publish file whitelist (`package.json#files`) to ship a cleaner package.
+
 ## 1.0.6 - 2026-02-18
 
 - Switched project license to MIT (`package.json` + `LICENSE`).

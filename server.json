@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.wwwwujl/yuque-mcp",
   "title": "Yuque MCP",
-  "description": "Yuque MCP server with safe read/write tools for groups, repositories, docs, and TOC.",
-  "version": "1.0.6",
+  "description": "Yuque MCP server with safe read/write tools for groups, group members, repositories, docs, and TOC.",
+  "version": "1.1.0",
   "repository": {
     "url": "https://github.com/wwwwujl/yuque-mcp",
     "source": "github"
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@wwwwwujl/yuque-mcp",
-      "version": "1.0.6",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       },
@@ -44,6 +44,24 @@
           "format": "number"
         },
         {
+          "name": "YUQUE_ALLOW_WRITE",
+          "description": "Enable write tools when true (optional, default false)",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "name": "YUQUE_WRITE_NAMESPACE_ALLOWLIST",
+          "description": "Comma-separated namespace allowlist for repo/doc/toc writes (optional)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "YUQUE_WRITE_GROUP_ALLOWLIST",
+          "description": "Comma-separated group login allowlist for group writes (optional)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
           "name": "YUQUE_ALLOW_DELETE",
           "description": "Enable delete tools when true (optional, default false)",
           "isRequired": false,
@@ -52,6 +70,24 @@
         {
           "name": "YUQUE_DELETE_NAMESPACE_ALLOWLIST",
           "description": "Comma-separated delete allowlist targets (optional)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "YUQUE_FILE_ROOT",
+          "description": "Allowed root directory for file-based doc tools (optional, default current working directory)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "YUQUE_FILE_MAX_BYTES",
+          "description": "Maximum size for file-based doc tools (optional, default 1048576)",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "name": "YUQUE_FILE_ALLOWED_EXTENSIONS",
+          "description": "Comma-separated allowed extensions for file-based doc tools (optional, default .md,.markdown,.txt)",
           "isRequired": false,
           "format": "string"
         }

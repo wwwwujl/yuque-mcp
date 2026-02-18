@@ -176,6 +176,9 @@ async function main() {
       "yuque_list_repos",
       "yuque_get_repo",
       "yuque_get_repo_toc",
+      "yuque_list_group_users",
+      "yuque_add_group_user",
+      "yuque_remove_group_user",
       "yuque_list_docs",
       "yuque_search_docs",
       "yuque_get_doc",
@@ -224,6 +227,10 @@ async function main() {
     if (!writeEnabled) {
       console.log("[smoke] write suite skipped (set YUQUE_SMOKE_ENABLE_WRITE=true to run)");
       return;
+    }
+
+    if (process.env.YUQUE_ALLOW_WRITE !== "true") {
+      throw new Error("Write smoke requires YUQUE_ALLOW_WRITE=true.");
     }
 
     const createdA = await callToolOk<NormalizedDoc>(client, "yuque_create_doc", {

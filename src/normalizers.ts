@@ -68,6 +68,29 @@ export function normalizeGroup(value: unknown): GroupOutput {
   };
 }
 
+export interface GroupUserOutput {
+  id: number | null;
+  type: string | null;
+  login: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  description: string | null;
+  role: number | null;
+}
+
+export function normalizeGroupUser(value: unknown): GroupUserOutput {
+  const item = asRecord(value);
+  return {
+    id: asNumber(item.id),
+    type: asString(item.type),
+    login: asString(item.login),
+    name: asString(item.name),
+    avatarUrl: asString(item.avatar_url),
+    description: asString(item.description),
+    role: asNumber(item.role),
+  };
+}
+
 export interface RepoOutput {
   id: number | null;
   type: string | null;
@@ -182,6 +205,10 @@ export function normalizeGroups(value: unknown): GroupOutput[] {
 
 export function normalizeRepos(value: unknown): RepoOutput[] {
   return asArray(value).map((item) => normalizeRepo(item));
+}
+
+export function normalizeGroupUsers(value: unknown): GroupUserOutput[] {
+  return asArray(value).map((item) => normalizeGroupUser(item));
 }
 
 export function normalizeToc(value: unknown): TocItemOutput[] {

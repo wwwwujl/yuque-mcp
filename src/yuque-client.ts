@@ -126,6 +126,21 @@ export interface DeleteGroupRequest {
   login: string;
 }
 
+export interface ListGroupUsersRequest {
+  login: string;
+}
+
+export interface AddGroupUserRequest {
+  group: string;
+  user: string;
+  role?: 0 | 1;
+}
+
+export interface RemoveGroupUserRequest {
+  group: string;
+  user: string;
+}
+
 export const yuquePaths = {
   getCurrentUser: () => "user",
   listGroups: (login?: string) => (login ? `users/${encodeURIComponent(login)}/groups` : "groups"),
@@ -133,6 +148,11 @@ export const yuquePaths = {
   createGroup: () => "groups",
   updateGroup: (login: string) => `groups/${encodeURIComponent(login)}`,
   deleteGroup: (login: string) => `groups/${encodeURIComponent(login)}`,
+  listGroupUsers: (login: string) => `groups/${encodeURIComponent(login)}/users`,
+  addGroupUser: (group: string, user: string) =>
+    `groups/${encodeURIComponent(group)}/users/${encodeURIComponent(user)}`,
+  removeGroupUser: (group: string, user: string) =>
+    `groups/${encodeURIComponent(group)}/users/${encodeURIComponent(user)}`,
   listRepos: (params: { user?: string; group?: string }) => {
     if (params.user) {
       return `users/${encodeURIComponent(params.user)}/repos`;
@@ -250,6 +270,25 @@ export class YuqueClient {
 
   public async deleteGroup(input: DeleteGroupRequest): Promise<unknown> {
     return this.request(yuquePaths.deleteGroup(input.login), {
+      method: "DELETE",
+    });
+  }
+
+  public async listGroupUsers(input: ListGroupUsersRequest): Promise<unknown> {
+    return this.request(yuquePaths.listGroupUsers(input.login));
+  }
+
+  public async addGroupUser(input: AddGroupUserRequest): Promise<unknown> {
+    return this.request(yuquePaths.addGroupUser(input.group, input.user), {
+      method: "PUT",
+      body: {
+        role: input.role,
+      },
+    });
+  }
+
+  public async removeGroupUser(input: RemoveGroupUserRequest): Promise<unknown> {
+    return this.request(yuquePaths.removeGroupUser(input.group, input.user), {
       method: "DELETE",
     });
   }

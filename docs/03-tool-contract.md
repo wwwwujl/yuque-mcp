@@ -4,6 +4,13 @@ All tools return a stable JSON envelope:
 - success: `{ ok: true, data, meta }`
 - failure: `{ ok: false, error, meta }`
 
+## Write Safety (All Write Tools)
+
+Server policy:
+- writes disabled by default (`YUQUE_ALLOW_WRITE=false`)
+- optional namespace allowlist (`YUQUE_WRITE_NAMESPACE_ALLOWLIST`) for repo/doc/toc writes
+- optional group allowlist (`YUQUE_WRITE_GROUP_ALLOWLIST`) for group and membership writes
+
 ## Delete Safety (All Delete Tools)
 
 Required input fields:
@@ -47,6 +54,19 @@ Server policy:
 ### `yuque_delete_group`
 - Input: `login`, `confirm`, `confirm_text`
 - Output: `{ login, deleted, group }`
+
+### `yuque_list_group_users`
+- Input: `login`
+- Output: group users array (`id`, `type`, `login`, `name`, `avatarUrl`, `description`, `role`)
+
+### `yuque_add_group_user`
+- Input: `group`, `user`, `role?`
+- `role`: `0` (admin) or `1` (normal)
+- Output: group user object
+
+### `yuque_remove_group_user`
+- Input: `group`, `user`
+- Output: `{ group, user, removed, membership }`
 
 ## Repository
 
@@ -134,12 +154,20 @@ Server policy:
 ### `yuque_create_doc_from_file`
 - Input: `namespace`, `file_path`, `title?`, `slug?`, `public?`, `format?`, `parent_uuid?`
 - Behavior: read local file and create doc
+- Server policy constraints:
+  - path must stay inside `YUQUE_FILE_ROOT`
+  - extension must match `YUQUE_FILE_ALLOWED_EXTENSIONS`
+  - file size must not exceed `YUQUE_FILE_MAX_BYTES`
 - Output: `{ doc, toc, source_file }`
 
 ### `yuque_update_doc_from_file`
 - Input: `namespace`, `slug?`, `doc_id?`, `file_path`, `title?`, `new_slug?`, `public?`, `format?`
 - Rules: exactly one of `slug` or `doc_id`
 - Behavior: read local file and update doc body
+- Server policy constraints:
+  - path must stay inside `YUQUE_FILE_ROOT`
+  - extension must match `YUQUE_FILE_ALLOWED_EXTENSIONS`
+  - file size must not exceed `YUQUE_FILE_MAX_BYTES`
 - Output: `{ doc, source_file }`
 
 ## TOC

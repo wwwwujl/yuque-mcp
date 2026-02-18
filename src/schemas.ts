@@ -264,6 +264,27 @@ export const DeleteGroupInputSchema = z
   })
   .strict();
 
+export const ListGroupUsersInputSchema = z
+  .object({
+    login: NonEmptyStringSchema,
+  })
+  .strict();
+
+export const AddGroupUserInputSchema = z
+  .object({
+    group: NonEmptyStringSchema,
+    user: NonEmptyStringSchema,
+    role: z.union([z.literal(0), z.literal(1)]).optional(),
+  })
+  .strict();
+
+export const RemoveGroupUserInputSchema = z
+  .object({
+    group: NonEmptyStringSchema,
+    user: NonEmptyStringSchema,
+  })
+  .strict();
+
 export const CreateRepoInputSchema = z
   .object({
     user: NonEmptyStringSchema.optional(),
@@ -358,6 +379,9 @@ export type CreateDocWithTocInput = z.infer<typeof CreateDocWithTocInputSchema>;
 export type UpdateDocInput = z.infer<typeof UpdateDocInputSchema>;
 export type DeleteDocInput = z.infer<typeof DeleteDocInputSchema>;
 export type UpdateTocInput = z.infer<typeof UpdateTocInputSchema>;
+export type ListGroupUsersInput = z.infer<typeof ListGroupUsersInputSchema>;
+export type AddGroupUserInput = z.infer<typeof AddGroupUserInputSchema>;
+export type RemoveGroupUserInput = z.infer<typeof RemoveGroupUserInputSchema>;
 export type GetGroupInput = z.infer<typeof GetGroupInputSchema>;
 export type CreateGroupInput = z.infer<typeof CreateGroupInputSchema>;
 export type UpdateGroupInput = z.infer<typeof UpdateGroupInputSchema>;

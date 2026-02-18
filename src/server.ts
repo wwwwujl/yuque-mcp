@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -16,14 +17,17 @@ import {
   DeleteRepoInputSchema,
   DeleteDocInputSchema,
   EmptyInputSchema,
+  AddGroupUserInputSchema,
   GetDocInputSchema,
   GetGroupInputSchema,
   GetMyRepositoriesInputSchema,
   GetRepoInputSchema,
+  ListGroupUsersInputSchema,
   ListDocsInputSchema,
   ListGroupsInputSchema,
   ListReposInputSchema,
   NamespaceInputSchema,
+  RemoveGroupUserInputSchema,
   SearchAndReadInputSchema,
   SearchDocsInputSchema,
   UpdateDocFromFileInputSchema,
@@ -50,10 +54,26 @@ function withEnvelope<TArgs, TResult>(
   };
 }
 
+function resolveServerVersion(): string {
+  try {
+    const moduleDir = dirname(fileURLToPath(import.meta.url));
+    const packageJsonPath = resolve(moduleDir, "..", "package.json");
+    const raw = readFileSync(packageJsonPath, "utf8");
+    const parsed = JSON.parse(raw) as { version?: unknown };
+    if (typeof parsed.version === "string" && parsed.version.trim().length > 0) {
+      return parsed.version.trim();
+    }
+  } catch {
+    // Ignore read failure and fall back.
+  }
+
+  return "0.0.0";
+}
+
 export function buildServer(service: YuqueToolService): McpServer {
   const server = new McpServer({
     name: "yuque-mcp",
-    version: "1.0.4",
+    version: resolveServerVersion(),
   });
 
   server.registerTool(
@@ -108,6 +128,33 @@ export function buildServer(service: YuqueToolService): McpServer {
       inputSchema: DeleteGroupInputSchema,
     },
     withEnvelope("yuque_delete_group", async (args) => service.deleteGroup(args)),
+  );
+
+  server.registerTool(
+    "yuque_list_group_users",
+    {
+      description: "List users in a Yuque group.",
+      inputSchema: ListGroupUsersInputSchema,
+    },
+    withEnvelope("yuque_list_group_users", async (args) => service.listGroupUsers(args)),
+  );
+
+  server.registerTool(
+    "yuque_add_group_user",
+    {
+      description: "Add or update a user membership in a Yuque group.",
+      inputSchema: AddGroupUserInputSchema,
+    },
+    withEnvelope("yuque_add_group_user", async (args) => service.addGroupUser(args)),
+  );
+
+  server.registerTool(
+    "yuque_remove_group_user",
+    {
+      description: "Remove a user from a Yuque group.",
+      inputSchema: RemoveGroupUserInputSchema,
+    },
+    withEnvelope("yuque_remove_group_user", async (args) => service.removeGroupUser(args)),
   );
 
   server.registerTool(
@@ -292,8 +339,14 @@ export async function startServer(): Promise<void> {
   const config = loadConfig();
   const client = new YuqueClient(config);
   const service = new YuqueToolService(client, {
+    allowWrite: config.allowWrite,
+    writeNamespaceAllowlist: config.writeNamespaceAllowlist,
+    writeGroupAllowlist: config.writeGroupAllowlist,
     allowDelete: config.allowDelete,
     deleteNamespaceAllowlist: config.deleteNamespaceAllowlist,
+    fileRoot: config.fileRoot,
+    fileMaxBytes: config.fileMaxBytes,
+    fileAllowedExtensions: config.fileAllowedExtensions,
   });
   const server = buildServer(service);
   const transport = new StdioServerTransport();

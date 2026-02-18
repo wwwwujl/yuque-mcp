@@ -1,10 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
+import { basename, extname, isAbsolute, relative, resolve } from "node:path";
 
 import {
   normalizeDoc,
   normalizeDocs,
   normalizeGroup,
+  normalizeGroupUser,
+  normalizeGroupUsers,
   normalizeGroups,
   normalizeRepo,
   normalizeRepos,
@@ -16,6 +18,7 @@ import type {
   CreateGroupRequest,
   CreateRepoRequest,
   CreateDocRequest,
+  AddGroupUserRequest,
   DeleteGroupRequest,
   DeleteRepoRequest,
   DeleteDocRequest,
@@ -24,6 +27,8 @@ import type {
   GetRepoRequest,
   ListDocsRequest,
   ListReposRequest,
+  ListGroupUsersRequest,
+  RemoveGroupUserRequest,
   UpdateGroupRequest,
   UpdateRepoRequest,
   UpdateDocRequest,
@@ -37,6 +42,9 @@ export interface YuqueApi {
   createGroup(input: CreateGroupRequest): Promise<unknown>;
   updateGroup(input: UpdateGroupRequest): Promise<unknown>;
   deleteGroup(input: DeleteGroupRequest): Promise<unknown>;
+  listGroupUsers(input: ListGroupUsersRequest): Promise<unknown>;
+  addGroupUser(input: AddGroupUserRequest): Promise<unknown>;
+  removeGroupUser(input: RemoveGroupUserRequest): Promise<unknown>;
   listRepos(input: ListReposRequest): Promise<unknown>;
   createRepo(input: CreateRepoRequest): Promise<unknown>;
   getRepo(input: GetRepoRequest): Promise<unknown>;
@@ -122,8 +130,14 @@ interface UpdateDocFromFileInput extends DocReferenceInput {
 }
 
 interface WriteSafetyPolicy {
+  allowWrite: boolean;
+  writeNamespaceAllowlist: string[];
+  writeGroupAllowlist: string[];
   allowDelete: boolean;
   deleteNamespaceAllowlist: string[];
+  fileRoot: string;
+  fileMaxBytes: number;
+  fileAllowedExtensions: string[];
 }
 
 interface DeleteWithConfirmation {
@@ -138,13 +152,21 @@ type DeleteDocInput = DocReferenceInput &
 type DeleteRepoInput = DeleteRepoRequest & DeleteWithConfirmation;
 type DeleteGroupInput = DeleteGroupRequest & DeleteWithConfirmation;
 
+const DEFAULT_WRITE_POLICY: WriteSafetyPolicy = {
+  allowWrite: false,
+  writeNamespaceAllowlist: [],
+  writeGroupAllowlist: [],
+  allowDelete: false,
+  deleteNamespaceAllowlist: [],
+  fileRoot: process.cwd(),
+  fileMaxBytes: 1024 * 1024,
+  fileAllowedExtensions: [".md", ".markdown", ".txt"],
+};
+
 export class YuqueToolService {
   public constructor(
     private readonly client: YuqueApi,
-    private readonly writeSafety: WriteSafetyPolicy = {
-      allowDelete: false,
-      deleteNamespaceAllowlist: [],
-    },
+    private readonly writeSafety: WriteSafetyPolicy = DEFAULT_WRITE_POLICY,
   ) {}
 
   private static asRecord(value: unknown): Record<string, unknown> {
@@ -206,6 +228,131 @@ export class YuqueToolService {
         message: "Delete operation is disabled by server policy. Set YUQUE_ALLOW_DELETE=true to enable.",
       });
     }
+  }
+
+  private ensureWriteEnabled() {
+    if (!this.writeSafety.allowWrite) {
+      throw new YuqueMcpError({
+        code: "PERMISSION_DENIED",
+        message: "Write operation is disabled by server policy. Set YUQUE_ALLOW_WRITE=true to enable.",
+      });
+    }
+  }
+
+  private ensureWriteNamespaceAllowed(namespace: string) {
+    if (
+      this.writeSafety.writeNamespaceAllowlist.length > 0 &&
+      !this.writeSafety.writeNamespaceAllowlist.includes(namespace)
+    ) {
+      throw new YuqueMcpError({
+        code: "PERMISSION_DENIED",
+        message: "Write operation blocked for this namespace by server policy.",
+        details: { namespace },
+      });
+    }
+  }
+
+  private ensureWriteGroupAllowed(login: string) {
+    if (
+      this.writeSafety.writeGroupAllowlist.length > 0 &&
+      !this.writeSafety.writeGroupAllowlist.includes(login)
+    ) {
+      throw new YuqueMcpError({
+        code: "PERMISSION_DENIED",
+        message: "Write operation blocked for this group by server policy.",
+        details: { group: login },
+      });
+    }
+  }
+
+  private validateWriteOwnerAndNamespace(owner: string, slug: string) {
+    this.ensureWriteNamespaceAllowed(`${owner}/${slug}`);
+  }
+
+  private async readLocalDocFile(filePath: string): Promise<{ content: string; resolvedPath: string }> {
+    let resolvedRoot: string;
+    try {
+      resolvedRoot = await realpath(resolve(this.writeSafety.fileRoot));
+    } catch {
+      throw new YuqueMcpError({
+        code: "VALIDATION_ERROR",
+        message: "Configured file root does not exist or is not accessible.",
+        details: {
+          fileRoot: this.writeSafety.fileRoot,
+        },
+      });
+    }
+
+    let resolvedPath: string;
+    try {
+      resolvedPath = await realpath(resolve(filePath));
+    } catch {
+      throw new YuqueMcpError({
+        code: "VALIDATION_ERROR",
+        message: "Local file does not exist or is not accessible.",
+        details: {
+          filePath,
+        },
+      });
+    }
+
+    const relPath = relative(resolvedRoot, resolvedPath);
+    if (relPath.startsWith("..") || isAbsolute(relPath)) {
+      throw new YuqueMcpError({
+        code: "PERMISSION_DENIED",
+        message: "Local file is outside allowed root directory.",
+        details: {
+          filePath,
+          fileRoot: resolvedRoot,
+        },
+      });
+    }
+
+    const extension = extname(resolvedPath).toLowerCase();
+    if (
+      this.writeSafety.fileAllowedExtensions.length > 0 &&
+      !this.writeSafety.fileAllowedExtensions.includes(extension)
+    ) {
+      throw new YuqueMcpError({
+        code: "VALIDATION_ERROR",
+        message: "Local file extension is not allowed by server policy.",
+        details: {
+          filePath,
+          extension,
+          allowedExtensions: this.writeSafety.fileAllowedExtensions,
+        },
+      });
+    }
+
+    const info = await stat(resolvedPath);
+
+    if (!info.isFile()) {
+      throw new YuqueMcpError({
+        code: "VALIDATION_ERROR",
+        message: "Local file path must point to a regular file.",
+        details: {
+          filePath,
+        },
+      });
+    }
+
+    if (info.size > this.writeSafety.fileMaxBytes) {
+      throw new YuqueMcpError({
+        code: "VALIDATION_ERROR",
+        message: "Local file exceeds allowed size limit.",
+        details: {
+          filePath,
+          size: info.size,
+          maxBytes: this.writeSafety.fileMaxBytes,
+        },
+      });
+    }
+
+    const content = await readFile(resolvedPath, "utf8");
+    return {
+      content,
+      resolvedPath,
+    };
   }
 
   private ensureDeleteTargetAllowed(target: string) {
@@ -343,17 +490,56 @@ export class YuqueToolService {
     return normalizeGroup(raw);
   }
 
+  public async listGroupUsers(input: ListGroupUsersRequest) {
+    const raw = await this.client.listGroupUsers(input);
+    return normalizeGroupUsers(raw);
+  }
+
+  public async addGroupUser(input: AddGroupUserRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteGroupAllowed(input.group);
+
+    const raw = await this.client.addGroupUser(input);
+    return normalizeGroupUser(raw);
+  }
+
+  public async removeGroupUser(input: RemoveGroupUserRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteGroupAllowed(input.group);
+
+    const raw = await this.client.removeGroupUser(input);
+    const record = YuqueToolService.asRecord(raw);
+    const hasUserShape = Object.keys(record).length > 0;
+    return {
+      group: input.group,
+      user: input.user,
+      removed: true,
+      membership: hasUserShape ? normalizeGroupUser(raw) : null,
+    };
+  }
+
   public async createGroup(input: CreateGroupRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteGroupAllowed(input.login);
+
     const raw = await this.client.createGroup(input);
     return normalizeGroup(raw);
   }
 
   public async updateGroup(input: UpdateGroupRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteGroupAllowed(input.login);
+    if (input.new_login) {
+      this.ensureWriteGroupAllowed(input.new_login);
+    }
+
     const raw = await this.client.updateGroup(input);
     return normalizeGroup(raw);
   }
 
   public async deleteGroup(input: DeleteGroupInput) {
+    this.ensureWriteEnabled();
+    this.ensureWriteGroupAllowed(input.login);
     this.ensureDeleteEnabled();
     this.ensureDeleteTargetAllowed(input.login);
     this.ensureDeleteConfirmation(input.confirm_text, `DELETE GROUP ${input.login}`);
@@ -397,6 +583,15 @@ export class YuqueToolService {
   }
 
   public async createRepo(input: CreateRepoRequest) {
+    this.ensureWriteEnabled();
+    const owner = input.user ?? input.group;
+    if (owner) {
+      if (input.group) {
+        this.ensureWriteGroupAllowed(input.group);
+      }
+      this.validateWriteOwnerAndNamespace(owner, input.slug);
+    }
+
     const raw = await this.client.createRepo(input);
     return normalizeRepo(raw);
   }
@@ -407,11 +602,16 @@ export class YuqueToolService {
   }
 
   public async updateRepo(input: UpdateRepoRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+
     const raw = await this.client.updateRepo(input);
     return normalizeRepo(raw);
   }
 
   public async deleteRepo(input: DeleteRepoInput) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
     this.ensureDeleteEnabled();
     this.ensureDeleteTargetAllowed(input.namespace);
     this.ensureDeleteConfirmation(input.confirm_text, `DELETE REPO ${input.namespace}`);
@@ -559,6 +759,9 @@ export class YuqueToolService {
   }
 
   public async createDoc(input: CreateDocRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+
     const raw = await this.client.createDoc(input);
     return normalizeDoc(raw);
   }
@@ -582,6 +785,9 @@ export class YuqueToolService {
   }
 
   public async updateDoc(input: UpdateDocInput) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+
     const raw = await this.client.updateDoc({
       namespace: input.namespace,
       doc_id_or_slug: YuqueToolService.resolveDocRef(input),
@@ -595,6 +801,8 @@ export class YuqueToolService {
   }
 
   public async deleteDoc(input: DeleteDocInput) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
     this.ensureDeleteEnabled();
     this.ensureDeleteTargetAllowed(input.namespace);
 
@@ -619,9 +827,12 @@ export class YuqueToolService {
   }
 
   public async createDocFromFile(input: CreateDocFromFileInput) {
-    const content = await readFile(input.file_path, "utf8");
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+    const localFile = await this.readLocalDocFile(input.file_path);
+    const content = localFile.content;
     const inferredTitle = YuqueToolService.extractMarkdownTitle(content);
-    const title = input.title ?? inferredTitle ?? basename(input.file_path);
+    const title = input.title ?? inferredTitle ?? basename(localFile.resolvedPath);
 
     const result = await this.createDocWithToc({
       namespace: input.namespace,
@@ -635,12 +846,15 @@ export class YuqueToolService {
 
     return {
       ...result,
-      source_file: input.file_path,
+      source_file: localFile.resolvedPath,
     };
   }
 
   public async updateDocFromFile(input: UpdateDocFromFileInput) {
-    const content = await readFile(input.file_path, "utf8");
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+    const localFile = await this.readLocalDocFile(input.file_path);
+    const content = localFile.content;
     const inferredTitle = YuqueToolService.extractMarkdownTitle(content);
     const title = input.title ?? inferredTitle ?? undefined;
 
@@ -657,11 +871,14 @@ export class YuqueToolService {
 
     return {
       doc,
-      source_file: input.file_path,
+      source_file: localFile.resolvedPath,
     };
   }
 
   public async updateToc(input: UpdateTocRequest) {
+    this.ensureWriteEnabled();
+    this.ensureWriteNamespaceAllowed(input.namespace);
+
     let raw: unknown;
     let effectiveNamespace = input.namespace;
     try {

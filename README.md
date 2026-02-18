@@ -13,6 +13,7 @@ Build a Yuque MCP server so Codex can:
 - create docs from local files and update docs from local files
 - create/update/delete repos (knowledge bases)
 - create/update/delete groups
+- manage group members (`list/add/remove`)
 - run combined operations (`get_my_repositories`, `get_repository_overview`, `search_and_read`, `create_document_with_toc`)
 - update repository TOC nodes
 - use Yuque content as a research knowledge base
@@ -60,13 +61,28 @@ Required env:
 - `YUQUE_ENDPOINT` (optional, default `https://www.yuque.com/api/v2/`)
 - `YUQUE_TIMEOUT_MS` (optional, default `10000`)
 - `YUQUE_MAX_RETRIES` (optional, default `2`, read-only retries only)
+- `YUQUE_ALLOW_WRITE` (optional, default `false`)
+- `YUQUE_WRITE_NAMESPACE_ALLOWLIST` (optional, comma-separated namespace allowlist for repo/doc/toc writes)
+- `YUQUE_WRITE_GROUP_ALLOWLIST` (optional, comma-separated group login allowlist for group writes)
 - `YUQUE_ALLOW_DELETE` (optional, default `false`)
 - `YUQUE_DELETE_NAMESPACE_ALLOWLIST` (optional, comma-separated delete allowlist targets; namespace for repo/doc, login for group)
+- `YUQUE_FILE_ROOT` (optional, default current working directory, used by file-based doc tools)
+- `YUQUE_FILE_MAX_BYTES` (optional, default `1048576`)
+- `YUQUE_FILE_ALLOWED_EXTENSIONS` (optional, default `.md,.markdown,.txt`)
+
+Write safety:
+
+- All write tools are blocked by default.
+- Set `YUQUE_ALLOW_WRITE=true` to enable writes.
+- Optional write allowlists:
+  - `YUQUE_WRITE_NAMESPACE_ALLOWLIST=team/sandbox,team/test`
+  - `YUQUE_WRITE_GROUP_ALLOWLIST=sandbox-team`
 
 Delete safety:
 
 - `yuque_delete_doc`, `yuque_delete_repo`, and `yuque_delete_group` are blocked by default.
 - To enable delete for test repos only, set:
+  - `YUQUE_ALLOW_WRITE=true`
   - `YUQUE_ALLOW_DELETE=true`
   - `YUQUE_DELETE_NAMESPACE_ALLOWLIST=your/test-namespace,your-test-group-login`
 - Delete tools also require `confirm: true` and exact `confirm_text`:
@@ -81,6 +97,8 @@ Latest highlights:
 - `yuque_search_docs` now scans paginated docs across the full repository.
 - Doc format supports `markdown`, `html`, `lake`; visibility supports `0 | 1 | 2`.
 - TOC update supports extra fields (`editNode`, `url`, `open_window`, `visible`).
+- Group member tools: `yuque_list_group_users`, `yuque_add_group_user`, `yuque_remove_group_user`.
+- File-based tools are constrained by root directory, extension allowlist, and max size.
 
 Run in dev:
 
@@ -105,6 +123,7 @@ Run write smoke suite with cleanup (create/update/toc/delete on test namespace):
 ```bash
 YUQUE_SMOKE_NAMESPACE=your/test-namespace \
 YUQUE_SMOKE_ENABLE_WRITE=true \
+YUQUE_ALLOW_WRITE=true \
 YUQUE_ALLOW_DELETE=true \
 YUQUE_DELETE_NAMESPACE_ALLOWLIST=your/test-namespace \
 npm run smoke

@@ -15,6 +15,9 @@ function createApiMock(overrides: Partial<YuqueApi> = {}): YuqueApi {
     createGroup: vi.fn(),
     updateGroup: vi.fn(),
     deleteGroup: vi.fn(),
+    listGroupUsers: vi.fn(),
+    addGroupUser: vi.fn(),
+    removeGroupUser: vi.fn(),
     listRepos: vi.fn(),
     createRepo: vi.fn(),
     getRepo: vi.fn(),
@@ -30,6 +33,22 @@ function createApiMock(overrides: Partial<YuqueApi> = {}): YuqueApi {
     ...overrides,
   };
 }
+
+const WRITE_ENABLED_POLICY = {
+  allowWrite: true,
+  writeNamespaceAllowlist: [],
+  writeGroupAllowlist: [],
+  allowDelete: false,
+  deleteNamespaceAllowlist: [],
+  fileRoot: process.cwd(),
+  fileMaxBytes: 1024 * 1024,
+  fileAllowedExtensions: [".md", ".markdown", ".txt"],
+};
+
+const DELETE_ENABLED_POLICY = {
+  ...WRITE_ENABLED_POLICY,
+  allowDelete: true,
+};
 
 describe("YuqueToolService", () => {
   test("listGroups falls back to users/{login}/groups on top-level 404", async () => {
@@ -232,6 +251,7 @@ describe("YuqueToolService", () => {
         createDoc: vi.fn().mockResolvedValue(rawDoc),
         updateDoc: vi.fn().mockResolvedValue(rawDoc),
       }),
+      WRITE_ENABLED_POLICY,
     );
 
     const created = await service.createDoc({
@@ -261,6 +281,7 @@ describe("YuqueToolService", () => {
         }),
         updateToc,
       }),
+      WRITE_ENABLED_POLICY,
     );
 
     const result = await service.createDocWithToc({
@@ -301,6 +322,7 @@ describe("YuqueToolService", () => {
         createRepo: vi.fn().mockResolvedValue(rawRepo),
         updateRepo: vi.fn().mockResolvedValue(rawRepo),
       }),
+      WRITE_ENABLED_POLICY,
     );
 
     const created = await service.createRepo({
@@ -334,6 +356,7 @@ describe("YuqueToolService", () => {
         createGroup: vi.fn().mockResolvedValue(rawGroup),
         updateGroup: vi.fn().mockResolvedValue(rawGroup),
       }),
+      WRITE_ENABLED_POLICY,
     );
 
     const created = await service.createGroup({
@@ -350,6 +373,114 @@ describe("YuqueToolService", () => {
     expect(updated.id).toBe(20);
   });
 
+  test("listGroupUsers and add/remove group user normalize response shape", async () => {
+    const api = createApiMock({
+      listGroupUsers: vi.fn().mockResolvedValue([
+        {
+          id: 10,
+          login: "alice",
+          name: "Alice",
+          role: 0,
+        },
+      ]),
+      addGroupUser: vi.fn().mockResolvedValue({
+        id: 10,
+        login: "alice",
+        name: "Alice",
+        role: 1,
+      }),
+      removeGroupUser: vi.fn().mockResolvedValue({
+        id: 10,
+        login: "alice",
+        name: "Alice",
+        role: 1,
+      }),
+    });
+    const service = new YuqueToolService(api, WRITE_ENABLED_POLICY);
+
+    const users = await service.listGroupUsers({
+      login: "team",
+    });
+    const added = await service.addGroupUser({
+      group: "team",
+      user: "alice",
+      role: 1,
+    });
+    const removed = await service.removeGroupUser({
+      group: "team",
+      user: "alice",
+    });
+
+    expect(users).toHaveLength(1);
+    expect(users[0]?.role).toBe(0);
+    expect(added.login).toBe("alice");
+    expect(added.role).toBe(1);
+    expect(removed.removed).toBe(true);
+    expect(removed.membership?.login).toBe("alice");
+  });
+
+  test("write operations are blocked when write policy is disabled", async () => {
+    const service = new YuqueToolService(
+      createApiMock({
+        createDoc: vi.fn(),
+      }),
+    );
+
+    await expect(
+      service.createDoc({
+        namespace: "team/repo",
+        title: "Hello",
+        body: "# Hello",
+      }),
+    ).rejects.toMatchObject({
+      code: "PERMISSION_DENIED",
+    });
+  });
+
+  test("write operations are blocked when namespace is outside write allowlist", async () => {
+    const service = new YuqueToolService(
+      createApiMock({
+        updateDoc: vi.fn(),
+      }),
+      {
+        ...WRITE_ENABLED_POLICY,
+        writeNamespaceAllowlist: ["team/sandbox"],
+      },
+    );
+
+    await expect(
+      service.updateDoc({
+        namespace: "team/repo",
+        slug: "intro",
+        body: "update",
+      }),
+    ).rejects.toMatchObject({
+      code: "PERMISSION_DENIED",
+    });
+  });
+
+  test("group write operations are blocked when group is outside write allowlist", async () => {
+    const service = new YuqueToolService(
+      createApiMock({
+        addGroupUser: vi.fn(),
+      }),
+      {
+        ...WRITE_ENABLED_POLICY,
+        writeGroupAllowlist: ["sandbox-team"],
+      },
+    );
+
+    await expect(
+      service.addGroupUser({
+        group: "prod-team",
+        user: "alice",
+        role: 1,
+      }),
+    ).rejects.toMatchObject({
+      code: "PERMISSION_DENIED",
+    });
+  });
+
   test("deleteDoc returns stable deletion payload", async () => {
     const service = new YuqueToolService(
       createApiMock({
@@ -359,7 +490,7 @@ describe("YuqueToolService", () => {
           title: "Intro",
         }),
       }),
-      { allowDelete: true, deleteNamespaceAllowlist: [] },
+      DELETE_ENABLED_POLICY,
     );
 
     const result = await service.deleteDoc({
@@ -385,7 +516,7 @@ describe("YuqueToolService", () => {
           title: "Intro",
         }),
       }),
-      { allowDelete: true, deleteNamespaceAllowlist: [] },
+      DELETE_ENABLED_POLICY,
     );
 
     const result = await service.deleteDoc({
@@ -409,7 +540,7 @@ describe("YuqueToolService", () => {
           name: "KB",
         }),
       }),
-      { allowDelete: true, deleteNamespaceAllowlist: [] },
+      DELETE_ENABLED_POLICY,
     );
 
     const result = await service.deleteRepo({
@@ -433,7 +564,7 @@ describe("YuqueToolService", () => {
         }),
       }),
       {
-        allowDelete: true,
+        ...DELETE_ENABLED_POLICY,
         deleteNamespaceAllowlist: ["sandbox-team"],
       },
     );
@@ -450,7 +581,10 @@ describe("YuqueToolService", () => {
   });
 
   test("deleteDoc is blocked when delete policy disabled", async () => {
-    const service = new YuqueToolService(createApiMock());
+    const service = new YuqueToolService(createApiMock(), {
+      ...WRITE_ENABLED_POLICY,
+      allowDelete: false,
+    });
 
     await expect(
       service.deleteDoc({
@@ -468,7 +602,7 @@ describe("YuqueToolService", () => {
     const service = new YuqueToolService(
       createApiMock(),
       {
-        allowDelete: true,
+        ...DELETE_ENABLED_POLICY,
         deleteNamespaceAllowlist: ["team/sandbox"],
       },
     );
@@ -487,7 +621,7 @@ describe("YuqueToolService", () => {
 
   test("deleteRepo is blocked when namespace is outside allowlist", async () => {
     const service = new YuqueToolService(createApiMock(), {
-      allowDelete: true,
+      ...DELETE_ENABLED_POLICY,
       deleteNamespaceAllowlist: ["team/sandbox"],
     });
 
@@ -504,7 +638,7 @@ describe("YuqueToolService", () => {
 
   test("deleteGroup is blocked when login is outside allowlist", async () => {
     const service = new YuqueToolService(createApiMock(), {
-      allowDelete: true,
+      ...DELETE_ENABLED_POLICY,
       deleteNamespaceAllowlist: ["sandbox-team"],
     });
 
@@ -524,7 +658,7 @@ describe("YuqueToolService", () => {
       createApiMock({
         deleteDoc: vi.fn(),
       }),
-      { allowDelete: true, deleteNamespaceAllowlist: [] },
+      DELETE_ENABLED_POLICY,
     );
 
     await expect(
@@ -549,6 +683,7 @@ describe("YuqueToolService", () => {
           ],
         }),
       }),
+      WRITE_ENABLED_POLICY,
     );
 
     const result = await service.updateToc({
@@ -578,6 +713,10 @@ describe("YuqueToolService", () => {
           }),
           updateToc: vi.fn().mockResolvedValue({ ok: true }),
         }),
+        {
+          ...WRITE_ENABLED_POLICY,
+          fileRoot: dir,
+        },
       );
 
       const result = await service.createDocFromFile({
@@ -608,6 +747,10 @@ describe("YuqueToolService", () => {
         createApiMock({
           updateDoc,
         }),
+        {
+          ...WRITE_ENABLED_POLICY,
+          fileRoot: dir,
+        },
       );
 
       const result = await service.updateDocFromFile({
@@ -624,6 +767,96 @@ describe("YuqueToolService", () => {
       );
       expect(result.source_file).toBe(filePath);
       expect(result.doc.title).toBe("Updated");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("createDocFromFile rejects files outside allowed root", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "yuque-mcp-root-"));
+    const outsideDir = await mkdtemp(join(tmpdir(), "yuque-mcp-outside-"));
+    const outsideFile = join(outsideDir, "outside.md");
+    await writeFile(outsideFile, "# Outside", "utf8");
+
+    try {
+      const service = new YuqueToolService(
+        createApiMock({
+          createDoc: vi.fn(),
+        }),
+        {
+          ...WRITE_ENABLED_POLICY,
+          fileRoot: rootDir,
+        },
+      );
+
+      await expect(
+        service.createDocFromFile({
+          namespace: "team/repo",
+          file_path: outsideFile,
+        }),
+      ).rejects.toMatchObject({
+        code: "PERMISSION_DENIED",
+      });
+    } finally {
+      await rm(rootDir, { recursive: true, force: true });
+      await rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  test("createDocFromFile rejects disallowed extension", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "yuque-mcp-"));
+    const filePath = join(dir, "raw.html");
+    await writeFile(filePath, "<h1>x</h1>", "utf8");
+
+    try {
+      const service = new YuqueToolService(
+        createApiMock({
+          createDoc: vi.fn(),
+        }),
+        {
+          ...WRITE_ENABLED_POLICY,
+          fileRoot: dir,
+        },
+      );
+
+      await expect(
+        service.createDocFromFile({
+          namespace: "team/repo",
+          file_path: filePath,
+        }),
+      ).rejects.toMatchObject({
+        code: "VALIDATION_ERROR",
+      });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("createDocFromFile rejects oversized files", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "yuque-mcp-"));
+    const filePath = join(dir, "big.md");
+    await writeFile(filePath, "a".repeat(32), "utf8");
+
+    try {
+      const service = new YuqueToolService(
+        createApiMock({
+          createDoc: vi.fn(),
+        }),
+        {
+          ...WRITE_ENABLED_POLICY,
+          fileRoot: dir,
+          fileMaxBytes: 16,
+        },
+      );
+
+      await expect(
+        service.createDocFromFile({
+          namespace: "team/repo",
+          file_path: filePath,
+        }),
+      ).rejects.toMatchObject({
+        code: "VALIDATION_ERROR",
+      });
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

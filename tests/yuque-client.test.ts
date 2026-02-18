@@ -20,6 +20,9 @@ describe("yuquePaths", () => {
     expect(yuquePaths.createGroup()).toBe("groups");
     expect(yuquePaths.updateGroup("team")).toBe("groups/team");
     expect(yuquePaths.deleteGroup("team")).toBe("groups/team");
+    expect(yuquePaths.listGroupUsers("team")).toBe("groups/team/users");
+    expect(yuquePaths.addGroupUser("team", "alice")).toBe("groups/team/users/alice");
+    expect(yuquePaths.removeGroupUser("team", "alice")).toBe("groups/team/users/alice");
     expect(yuquePaths.listRepos({ group: "design" })).toBe("groups/design/repos");
     expect(yuquePaths.createRepo({ user: "alice" })).toBe("users/alice/repos");
     expect(yuquePaths.updateRepo("alice/repo")).toBe("repos/alice%2Frepo");
@@ -273,6 +276,61 @@ describe("YuqueClient request mapping", () => {
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(String(url)).toBe("https://www.yuque.com/api/v2/groups/team");
     expect(init?.method).toBe("DELETE");
+  });
+
+  test("maps group user membership endpoints", async () => {
+    const fetchMock = vi
+      .fn<YuqueFetch>()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          data: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          data: { login: "alice", role: 1 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          data: null,
+        }),
+      );
+
+    const client = new YuqueClient(
+      {
+        yuqueToken: "test-token",
+        yuqueEndpoint: "https://www.yuque.com/api/v2/",
+        timeoutMs: 5000,
+        maxRetries: 0,
+      },
+      { fetchImpl: fetchMock },
+    );
+
+    await client.listGroupUsers({
+      login: "team",
+    });
+    await client.addGroupUser({
+      group: "team",
+      user: "alice",
+      role: 1,
+    });
+    await client.removeGroupUser({
+      group: "team",
+      user: "alice",
+    });
+
+    const [listUrl, listInit] = fetchMock.mock.calls[0] ?? [];
+    const [addUrl, addInit] = fetchMock.mock.calls[1] ?? [];
+    const [removeUrl, removeInit] = fetchMock.mock.calls[2] ?? [];
+
+    expect(String(listUrl)).toBe("https://www.yuque.com/api/v2/groups/team/users");
+    expect(listInit?.method).toBe("GET");
+    expect(String(addUrl)).toBe("https://www.yuque.com/api/v2/groups/team/users/alice");
+    expect(addInit?.method).toBe("PUT");
+    expect(String(addInit?.body)).toContain("\"role\":1");
+    expect(String(removeUrl)).toBe("https://www.yuque.com/api/v2/groups/team/users/alice");
+    expect(removeInit?.method).toBe("DELETE");
   });
 
   test("sends POST body for create repo", async () => {

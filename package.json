@@ -1,6 +1,6 @@
 {
   "name": "@wwwwwujl/yuque-mcp",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "mcpName": "io.github.wwwwujl/yuque-mcp",
   "description": "Production-grade Yuque MCP server with safe read/write tools.",
   "main": "dist/server.js",
@@ -13,6 +13,20 @@
   "bugs": {
     "url": "https://github.com/wwwwujl/yuque-mcp/issues"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "DISCLAIMER.md",
+    "server.json",
+    "docs/10-registry-publish.md",
+    "docs/11-weekly-maintenance.md",
+    "docs/12-complaint-and-takedown.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit",

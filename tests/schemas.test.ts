@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  AddGroupUserInputSchema,
   CreateDocFromFileInputSchema,
   CreateGroupInputSchema,
   CreateRepoInputSchema,
@@ -11,8 +12,10 @@ import {
   DeleteDocInputSchema,
   GetDocInputSchema,
   GetGroupInputSchema,
+  ListGroupUsersInputSchema,
   ListDocsInputSchema,
   ListReposInputSchema,
+  RemoveGroupUserInputSchema,
   SearchAndReadInputSchema,
   SearchDocsInputSchema,
   UpdateDocFromFileInputSchema,
@@ -227,6 +230,25 @@ describe("Group schemas", () => {
         confirm_text: "DELETE GROUP team",
       }).success,
     ).toBe(false);
+  });
+
+  test("ListGroupUsersInputSchema requires login", () => {
+    expect(ListGroupUsersInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  test("AddGroupUserInputSchema accepts optional role", () => {
+    const parsed = AddGroupUserInputSchema.parse({
+      group: "team",
+      user: "alice",
+      role: 1,
+    });
+
+    expect(parsed.group).toBe("team");
+    expect(parsed.role).toBe(1);
+  });
+
+  test("RemoveGroupUserInputSchema requires group and user", () => {
+    expect(RemoveGroupUserInputSchema.safeParse({ group: "team" }).success).toBe(false);
   });
 });
 
