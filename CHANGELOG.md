@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6 - 2026-02-18
+
+- Switched project license to MIT (`package.json` + `LICENSE`).
+- Added open-source governance docs (`CONTRIBUTING.md`, `SECURITY.md`, `DISCLAIMER.md`).
+- Added complaint/takedown and weekly maintenance docs.
+- Updated issue/PR templates and `CODEOWNERS`.
+
 ## 1.0.4 - 2026-02-18
 
 - Changed npm package name to `@wwwwwujl/yuque-mcp` to match the npm organization scope.

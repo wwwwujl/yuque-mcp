@@ -26,11 +26,11 @@
 ## 3. 发布触发方式
 
 工作流文件：`.github/workflows/publish-mcp.yml`  
-触发条件：推送 `v*` 标签（例如 `v1.0.5`）
+触发条件：推送 `v*` 标签（例如 `v1.0.6`）
 
 ```bash
-git tag v1.0.5
-git push origin v1.0.5
+git tag v1.0.6
+git push origin v1.0.6
 ```
 
 ## 4. 工作流做了什么
