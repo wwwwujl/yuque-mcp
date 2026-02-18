@@ -30,7 +30,12 @@ Build a Yuque MCP server so Codex can:
 - `docs/08-codex-integration.md`
 - `docs/09-release-notes-zh.md`
 - `docs/10-registry-publish.md`
+- `docs/11-weekly-maintenance.md`
+- `docs/12-complaint-and-takedown.md`
 - `CHANGELOG.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `DISCLAIMER.md`
 - `tasks/TODO.md`
 
 ## Session Kickoff
@@ -112,3 +117,11 @@ npm run smoke
 - `@modelcontextprotocol/sdk`
 - Native `fetch` or lightweight HTTP client
 - `zod` for input validation
+
+## Open Source Governance
+
+- Contribution guide: `CONTRIBUTING.md`
+- Security policy: `SECURITY.md`
+- Weekly maintenance checklist: `docs/11-weekly-maintenance.md`
+- Complaint and takedown policy: `docs/12-complaint-and-takedown.md`
+- Disclaimer: `DISCLAIMER.md`

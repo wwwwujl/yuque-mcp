@@ -89,3 +89,11 @@ npm run smoke
 - 自动发布工作流：`.github/workflows/publish-mcp.yml`
 - 中文发布说明：`docs/09-release-notes-zh.md`
 - 官方发布操作指南：`docs/10-registry-publish.md`
+
+## 开源协作与维护
+
+- 贡献指南：`CONTRIBUTING.md`
+- 安全策略：`SECURITY.md`
+- 每周维护清单：`docs/11-weekly-maintenance.md`
+- 投诉与下架流程：`docs/12-complaint-and-takedown.md`
+- 免责声明：`DISCLAIMER.md`

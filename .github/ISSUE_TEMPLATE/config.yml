@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability report
+    url: https://github.com/wwwwujl/yuque-mcp/security/advisories/new
+    about: Please use private disclosure for security issues.
+  - name: Complaint / takedown policy
+    url: https://github.com/wwwwujl/yuque-mcp/blob/main/docs/12-complaint-and-takedown.md
+    about: Read complaint scope, required evidence, and response timeline.
