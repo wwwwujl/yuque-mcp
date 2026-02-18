@@ -10,7 +10,7 @@
    - `mcpName`（必须与 `server.json.name` 一致）
 3. 确保 `server.json` 存在且字段完整
 4. npm 账号可发布 `package.json.name` 对应包名
-   - 当前建议包名：`@wwwwujl/yuque-mcp`
+   - 当前建议包名：`@wwwwwujl/yuque-mcp`
 
 ## 2. GitHub Secrets
 
@@ -24,11 +24,11 @@
 ## 3. 发布触发方式
 
 工作流文件：`.github/workflows/publish-mcp.yml`  
-触发条件：推送 `v*` 标签（例如 `v1.0.3`）
+触发条件：推送 `v*` 标签（例如 `v1.0.4`）
 
 ```bash
-git tag v1.0.3
-git push origin v1.0.3
+git tag v1.0.4
+git push origin v1.0.4
 ```
 
 ## 4. 工作流做了什么

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 - 2026-02-18
+
+- Changed npm package name to `@wwwwwujl/yuque-mcp` to match the npm organization scope.
+- Updated `server.json` package identifier accordingly.
+- Bumped server/package metadata version to `1.0.4`.
+
 ## 1.0.3 - 2026-02-18
 
 - Added `server.json` for official MCP Registry publishing (schema `2025-12-11`).
