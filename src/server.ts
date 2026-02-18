@@ -53,7 +53,7 @@ function withEnvelope<TArgs, TResult>(
 export function buildServer(service: YuqueToolService): McpServer {
   const server = new McpServer({
     name: "yuque-mcp",
-    version: "1.0.2",
+    version: "1.0.3",
   });
 
   server.registerTool(

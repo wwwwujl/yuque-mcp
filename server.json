@@ -1,0 +1,61 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.wwwwujl/yuque-mcp",
+  "title": "Yuque MCP",
+  "description": "Yuque MCP server with safe read/write tools for groups, repositories, docs, and TOC.",
+  "version": "1.0.3",
+  "repository": {
+    "url": "https://github.com/wwwwujl/yuque-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/wwwwujl/yuque-mcp",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "yuque-mcp",
+      "version": "1.0.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "YUQUE_TOKEN",
+          "description": "Yuque API token",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "YUQUE_ENDPOINT",
+          "description": "Yuque API endpoint (optional)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "YUQUE_TIMEOUT_MS",
+          "description": "Yuque API timeout in milliseconds (optional)",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "name": "YUQUE_MAX_RETRIES",
+          "description": "Read-only retry count (optional)",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "name": "YUQUE_ALLOW_DELETE",
+          "description": "Enable delete tools when true (optional, default false)",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "name": "YUQUE_DELETE_NAMESPACE_ALLOWLIST",
+          "description": "Comma-separated delete allowlist targets (optional)",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

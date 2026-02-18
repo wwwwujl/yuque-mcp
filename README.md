@@ -1,5 +1,7 @@
 # yuque-mcp
 
+中文说明: [README.zh-CN.md](./README.zh-CN.md)
+
 This folder is prepared for building a custom MCP server for Yuque.
 
 ## Goal
@@ -27,6 +29,7 @@ Build a Yuque MCP server so Codex can:
 - `docs/07-test-plan.md`
 - `docs/08-codex-integration.md`
 - `docs/09-release-notes-zh.md`
+- `docs/10-registry-publish.md`
 - `CHANGELOG.md`
 - `tasks/TODO.md`
 

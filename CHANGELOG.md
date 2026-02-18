@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.3 - 2026-02-18
+
+- Added `server.json` for official MCP Registry publishing (schema `2025-12-11`).
+- Added GitHub Actions workflow `.github/workflows/publish-mcp.yml` to publish npm package and MCP Registry metadata on version tags.
+- Added Chinese README `README.zh-CN.md`.
+- Added registry publishing guide `docs/10-registry-publish.md`.
+- Added `mcpName` and repository metadata in `package.json`.
+
 ## 1.0.2 - 2026-02-17
 
 - Added `npm run smoke` automation (`src/smoke.ts`) to run local MCP stdio smoke tests with stable pass/fail output.
